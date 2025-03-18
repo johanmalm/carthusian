@@ -47,17 +47,13 @@ struct frontend {
 	struct wl_listener request_set_selection;
 };
 
-struct pointer {
-	struct wlr_pointer wlr_pointer;
-};
-
 struct seat {
 	struct server *server;
 
 	struct wl_seat *wl_seat;
 	char *name;
 
-	struct pointer *pointer;
+	struct wlr_pointer wlr_pointer;
 };
 
 struct backend {
@@ -114,4 +110,3 @@ void backend_init(struct server *server, struct backend *backend);
 void backend_finish(struct backend *backend);
 
 #endif /* CARTHUSIAN_PANEL_H */
-

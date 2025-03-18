@@ -62,7 +62,6 @@ handle_wl_pointer_enter(void *data, struct wl_pointer *wl_pointer, uint32_t seri
 {
 	struct seat *seat = data;
 	struct server *server = seat->server;
-	struct pointer *_pointer = seat->pointer;
 
 	struct wl_cursor_image *image = cursor_image;
 	wl_surface_attach(cursor_surface, wl_cursor_image_get_buffer(image), 0, 0);
@@ -85,10 +84,9 @@ handle_wl_pointer_motion(void *data, struct wl_pointer *wl_pointer, uint32_t tim
 {
 	struct seat *seat = data;
 	struct server *server = seat->server;
-	struct pointer *_pointer = seat->pointer;
 
 	struct wlr_pointer_motion_absolute_event event = {
-		.pointer = &_pointer->wlr_pointer,
+		.pointer = &seat->wlr_pointer,
 		.time_msec = time,
 		.x = wl_fixed_to_double(surface_x) / (double)server->width,
 		.y = wl_fixed_to_double(surface_y) / (double)server->height,
@@ -104,19 +102,18 @@ handle_wl_pointer_button(void *data, struct wl_pointer *wl_pointer, uint32_t ser
 {
 	fprintf(stderr, "info: '%s()'\n", __func__);
 	struct seat *seat = data;
-	struct pointer *_pointer = seat->pointer;
 
 	struct wlr_pointer_button_event event = {
-		.pointer = &_pointer->wlr_pointer,
+		.pointer = &seat->wlr_pointer,
 		.button = button,
 		.state = state,
 		.time_msec = time,
 	};
 
 	// From wlroots 0.19 we can do:
-	// wlr_pointer_notify_button(&_pointer->wlr_pointer, &event);
+	// wlr_pointer_notify_button(&seat->wlr_pointer, &event);
 	// but for the time being we'll stick with...
-	//wl_signal_emit_mutable(&_pointer->wlr_pointer.events.button, &event);
+	//wl_signal_emit_mutable(&seat->wlr_pointer.events.button, &event);
 
 	struct frontend *frontend = seat->server->frontend;
 	wl_signal_emit_mutable(&frontend->cursor->events.button, &event);
@@ -133,8 +130,7 @@ static void
 handle_wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 {
 	struct seat *seat = data;
-	struct pointer *_pointer = seat->pointer;
-	wl_signal_emit_mutable(&_pointer->wlr_pointer.events.frame, &seat->pointer->wlr_pointer);
+	wl_signal_emit_mutable(&seat->wlr_pointer.events.frame, &seat->wlr_pointer);
 	struct frontend *frontend = seat->server->frontend;
 	wl_signal_emit_mutable(&frontend->cursor->events.frame, &frontend->cursor);
 }
@@ -177,20 +173,11 @@ const struct wlr_pointer_impl wl_pointer_impl = {
 };
 
 static void
-create_pointer(struct seat *seat)
-{
-	struct pointer *pointer = calloc(1, sizeof(*pointer));
-	seat->pointer = pointer;
-
-	char name[64] = {0};
-	snprintf(name, sizeof(name), "wayland-pointer-%s", seat->name ? : "");
-	wlr_pointer_init(&pointer->wlr_pointer, &wl_pointer_impl, name);
-}
-
-static void
 init_seat_pointer(struct seat *seat, struct wl_pointer *wl_pointer)
 {
-	create_pointer(seat);
+	char name[64] = {0};
+	snprintf(name, sizeof(name), "wayland-pointer-%s", seat->name ? : "");
+	wlr_pointer_init(&seat->wlr_pointer, &wl_pointer_impl, name);
 	wl_pointer_add_listener(wl_pointer, &pointer_listener, seat);
 }
 
