@@ -1,0 +1,11 @@
+Half-baked attempt at creating a panel consisting of a "backend"
+wlr-layer-shell client within which there is a "frontend" wlroots compositor.
+
+Any xdg-shell client can be a plugin by simply using the frontend display, for
+example:
+
+    WAYLAND_DISPLAY=wayland-1 ./plugins/clock.py
+
+
+
+
