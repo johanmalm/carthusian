@@ -185,6 +185,15 @@ init_frontend(struct server *server, struct frontend *frontend)
 		&frontend->request_set_selection);
 }
 
+static void
+spawn(const char *command)
+{
+	const char *shell = "/bin/sh";
+	if (!fork()) {
+		execl(shell, shell, "-c", command, (void *)NULL);
+	}
+}
+
 int
 main(int argc, char **argv)
 {
@@ -263,10 +272,9 @@ main(int argc, char **argv)
 	setenv("WAYLAND_DISPLAY", socket, true);
 	fprintf(stderr, "info: carthusian running on WAYLAND_DISPLAY=%s\n", socket);
 
-	const char *shell = "/bin/sh";
-	if (!fork()) {
-		execl(shell, shell, "-c", "./plugins/clock.py", (void *)NULL);
-	}
+	spawn("./plugins/clock.py --color red");
+	spawn("./plugins/clock.py --color blue");
+	spawn("./plugins/clock.py --color green");
 
 	render(&server);
 

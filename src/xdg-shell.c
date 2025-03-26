@@ -2,12 +2,29 @@
 
 #define XDG_SHELL_VERSION (3)
 
+#define MARGIN_HORIZONTAL (3)
+#define MARGIN_VERTICAL (3)
+#define PADDING (3)
+
+static void
+arrange_toplevels(struct server *server)
+{
+	struct toplevel *toplevel;
+	int y = MARGIN_HORIZONTAL;
+	int x = MARGIN_VERTICAL;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		wlr_scene_node_set_position(&toplevel->scene_tree->node, x, y);
+		x += toplevel->pending.width + PADDING;
+	}
+}
+
 static void
 handle_xdg_toplevel_map(struct wl_listener *listener, void *data)
 {
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, map);
-	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
+	wl_list_insert(toplevel->server->toplevels.prev, &toplevel->link);
 	wlr_xdg_toplevel_set_activated(toplevel->xdg_toplevel, true);
+	arrange_toplevels(toplevel->server);
 }
 
 static void
@@ -15,6 +32,7 @@ handle_xdg_toplevel_unmap(struct wl_listener *listener, void *data)
 {
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, unmap);
 	wl_list_remove(&toplevel->link);
+	arrange_toplevels(toplevel->server);
 }
 
 static void
@@ -22,8 +40,13 @@ handle_xdg_toplevel_commit(struct wl_listener *listener, void *data)
 {
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, commit);
 	if (toplevel->xdg_toplevel->base->initial_commit) {
-		wlr_xdg_toplevel_set_size(toplevel->xdg_toplevel, 0, 0);
+		wlr_xdg_surface_schedule_configure(toplevel->xdg_toplevel->base);
+		return;
 	}
+	wlr_xdg_surface_get_geometry(toplevel->xdg_toplevel->base, &toplevel->pending);
+
+	// TODO: do some updated-required logic here
+	arrange_toplevels(toplevel->server);
 }
 
 static void
